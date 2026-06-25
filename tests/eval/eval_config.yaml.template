@@ -1,0 +1,145 @@
+# Local LLM-as-judge evaluation config for the Lawn Concierge agent.
+#
+# Each custom metric below has the judge model read the *entire* trace
+# (agent_data: every turn, agent response, and tool call/response) and
+# score it 1-5 against one specific rule from app/agent.py's orchestrator
+# instructions or a sub-agent's instructions, with a short explanation.
+#
+# Run with: uv run agents-cli eval grade --traces artifacts/traces/ --config tests/eval/eval_config.yaml
+
+metrics_to_run:
+  - routing_correctness
+  - context_gathering_discipline
+  - safety_disclosure
+  - actionable_specificity
+  - service_completeness
+
+custom_metrics:
+  - name: routing_correctness
+    judge_model: projects/__GCP_PROJECT__/locations/global/publishers/google/models/gemini-2.5-flash
+    prompt_template: |
+      You are grading a multi-agent lawn care assistant. The orchestrator
+      ("lawn_concierge") must route each request to the right specialist:
+      watering_agent (watering/irrigation), lawn_care_agent (mowing/fertilizing),
+      diagnosis_agent (pest/weed/disease identification), or scheduler_agent
+      (calendar reminders). For multi-part questions, it should route to each
+      relevant specialist in turn and compile the answers.
+
+      User prompt: {prompt}
+      Final response: {response}
+      Full trace (agent authors, tool calls, tool responses, intermediate text): {agent_data}
+
+      Score 1-5 on whether the request was routed to the correct specialist(s),
+      using the tools/agents visible in the trace as evidence (not just the
+      final text). 5 = routed correctly to every specialist the request needed.
+      1 = routed to the wrong specialist or answered without delegating when
+      specialist knowledge was required.
+
+      Return ONLY JSON: {{"score": <1|2|3|4|5>, "explanation": "<one or two sentence reason>"}}
+
+  - name: context_gathering_discipline
+    judge_model: projects/__GCP_PROJECT__/locations/global/publishers/google/models/gemini-2.5-flash
+    prompt_template: |
+      You are grading a lawn care assistant against this rule: before giving
+      the user specific advice, the system (the orchestrator OR the
+      specialist it delegates to — either is acceptable, since specialists
+      are themselves instructed to ask before advising) must have grass type
+      (if relevant to the question) and location (if asking about weather).
+      If the user hasn't provided these, the system must ask for them in a
+      friendly, conversational way INSTEAD OF guessing or giving generic
+      advice — it does not matter whether the orchestrator asks before
+      delegating or the specialist asks after being delegated to, as long as
+      no specific advice is given before the missing information is gathered.
+
+      User prompt: {prompt}
+      Final response: {response}
+      Full trace: {agent_data}
+
+      Score 1-5 on adherence to this rule. If the prompt already supplied the
+      needed grass type/location, score 5 if specific advice was given
+      directly (no need to ask). If the prompt OMITTED grass type or location
+      that the question needed, score 5 if a clarifying question was asked
+      (by the orchestrator OR the delegated specialist) before any specific
+      advice was given; score 1 only if specific advice was given without
+      ever asking for the missing essential context.
+
+      Return ONLY JSON: {{"score": <1|2|3|4|5>, "explanation": "<one or two sentence reason>"}}
+
+  - name: safety_disclosure
+    judge_model: projects/__GCP_PROJECT__/locations/global/publishers/google/models/gemini-2.5-flash
+    prompt_template: |
+      You are grading a lawn care assistant's pest/weed/disease treatment
+      advice. Treatment recommendations involving pesticides, herbicides, or
+      chemical products must mention safety precautions (e.g. reading the
+      product label, protective equipment, or safe application practices).
+
+      User prompt: {prompt}
+      Final response: {response}
+      Full trace: {agent_data}
+
+      If this case does not involve a chemical treatment recommendation at
+      all, score 5 (rule does not apply / trivially satisfied) and say so in
+      the explanation. Otherwise score 1-5: 5 = clear safety guidance
+      included, 1 = chemical treatment recommended with no safety mention
+      whatsoever.
+
+      Return ONLY JSON: {{"score": <1|2|3|4|5>, "explanation": "<one or two sentence reason>"}}
+
+  - name: service_completeness
+    judge_model: projects/__GCP_PROJECT__/locations/global/publishers/google/models/gemini-2.5-flash
+    prompt_template: |
+      You are grading a multi-agent lawn care assistant's coverage of lawn
+      care services. The assistant's full service catalog is: mowing,
+      fertilizing, aeration (+ overseeding for cool-season grass), and
+      PROACTIVE pest/weed prevention (not just reactive diagnosis from
+      described symptoms). The system has separate tools for each of these
+      (mowing_schedule, fertilizing_schedule, aeration_schedule,
+      pest_prevention_schedule) — a complete seasonal/treatment plan should
+      use all four, not just mowing and fertilizing.
+
+      User prompt: {prompt}
+      Final response: {response}
+      Full trace (tool calls made are visible here): {agent_data}
+
+      If the user's request is a narrow, single-topic question (e.g. only
+      asking about watering, or only describing a specific visible pest
+      symptom), this metric does not apply — score 5 and say so in the
+      explanation.
+
+      If the user explicitly asks for a "full"/"complete"/"seasonal"/
+      "treatment" plan, or otherwise asks what they should do for their lawn
+      in general (not narrowed to one topic), score 1-5 on how many of the
+      four service areas (mowing, fertilizing, aeration, proactive pest
+      prevention) were actually covered via tool calls in the trace:
+      5 = all four covered (or covered ones that are genuinely relevant —
+      e.g. aeration tool called even if its answer says "not recommended
+      this month" still counts as covered). 1 = plan only covered one
+      service area despite being asked for a full/complete plan.
+
+      Return ONLY JSON: {{"score": <1|2|3|4|5>, "explanation": "<one or two sentence reason>"}}
+
+  - name: actionable_specificity
+    judge_model: projects/__GCP_PROJECT__/locations/global/publishers/google/models/gemini-2.5-flash
+    prompt_template: |
+      You are grading a lawn care assistant's final response for
+      actionability. A good response either (a) contains at least one
+      concrete, specific recommendation (an exact number, product name,
+      date, or technique) rather than vague generic advice, OR (b) the
+      agent's instructions require it to gather essential context (grass
+      type, location) before giving advice, and the response is a genuine,
+      specific clarifying question asking for that missing context rather
+      than guessing or stalling with empty vague advice.
+
+      User prompt: {prompt}
+      Final response: {response}
+      Full trace: {agent_data}
+
+      Score 1-5: 5 = response gives specific, concrete actionable guidance
+      (e.g. "water 1 inch per week, twice weekly" or "mow to 3-4 inches"),
+      OR correctly asks a specific clarifying question because it lacks
+      essential context needed to give specific advice. 1 = response is
+      vague or evasive despite already having enough context to be
+      specific, or asks a vague/generic question without saying what
+      information it actually needs.
+
+      Return ONLY JSON: {{"score": <1|2|3|4|5>, "explanation": "<one or two sentence reason>"}}

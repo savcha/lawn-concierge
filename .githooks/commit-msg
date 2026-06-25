@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# commit-msg hook — enforces Conventional Commits specification
+# https://www.conventionalcommits.org/en/v1.0.0/
+#
+# Format:  type(scope): description
+#          type!: description          (breaking change shorthand)
+#
+# Installed automatically by `make install` via:
+#   git config core.hooksPath .githooks
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Skip merge commits, fixup commits, and squash commits
+if echo "$COMMIT_MSG" | grep -qE "^(Merge|fixup!|squash!)"; then
+    exit 0
+fi
+
+# Skip lines that are comments (git adds these in interactive mode)
+FIRST_LINE=$(echo "$COMMIT_MSG" | grep -v '^#' | head -1)
+
+TYPES="build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|wip"
+
+# Pattern: type(optional-scope)optional-!: description (min 1 char)
+PATTERN="^($TYPES)(\([a-zA-Z0-9/_-]+\))?(!)?: .{1,}"
+
+if ! echo "$FIRST_LINE" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "  ✗ Commit message does not follow Conventional Commits."
+    echo ""
+    echo "  Expected format:"
+    echo "    type(scope): short description"
+    echo ""
+    echo "  Valid types:  build, chore, ci, docs, feat, fix, perf,"
+    echo "                refactor, revert, style, test, wip"
+    echo ""
+    echo "  Examples:"
+    echo "    feat(watering): add drought detection logic"
+    echo "    fix(mcp): handle missing API key gracefully"
+    echo "    docs: update setup instructions in README"
+    echo "    chore!: drop Python 3.10 support (breaking)"
+    echo ""
+    echo "  Your message: \"$FIRST_LINE\""
+    echo ""
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,151 @@
+[
+  {
+    "id": "watering_with_rain",
+    "description": "User asks if they need to water given upcoming rain",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "It rained yesterday and I have bermuda grass in Austin, TX. Do I need to water today?"
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "grass_type_specificity",
+      "actionable_advice"
+    ],
+    "expected_keywords": ["bermuda", "water", "rain", "schedule"],
+    "notes": "Should route to watering_agent and fetch weather for Austin."
+  },
+  {
+    "id": "mowing_height_question",
+    "description": "User asks about mowing height for their grass type",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "I have St. Augustine grass in Houston. What height should I mow it to this summer?"
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "grass_type_specificity",
+      "actionable_advice"
+    ],
+    "expected_keywords": ["st_augustine", "height", "inch", "summer"],
+    "notes": "Should route to lawn_care_agent and call mowing_schedule tool."
+  },
+  {
+    "id": "fertilizer_timing",
+    "description": "User asks when and what to fertilize",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "When should I fertilize my fescue lawn? It's about 2,500 square feet."
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "grass_type_specificity",
+      "actionable_advice"
+    ],
+    "expected_keywords": ["fescue", "fertiliz", "NPK", "lbs"],
+    "notes": "Should route to lawn_care_agent. Response should include NPK ratio and quantity."
+  },
+  {
+    "id": "pest_diagnosis",
+    "description": "User describes pest symptoms for diagnosis",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "My St. Augustine lawn in Florida has yellowing patches in the sunniest spots. The grass feels spongy and seems to be spreading. It's July. What's wrong?"
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "actionable_advice",
+      "safety_first"
+    ],
+    "expected_keywords": ["chinch", "treatment", "insecticide"],
+    "notes": "Classic chinch bug symptoms on St. Augustine in summer. Should diagnose correctly."
+  },
+  {
+    "id": "calendar_reminder",
+    "description": "User asks to schedule a reminder",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "Remind me to fertilize my Bermuda lawn in August. It's about 1,500 square feet."
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "actionable_advice"
+    ],
+    "expected_keywords": ["August", "calendar", "reminder", "bermuda"],
+    "notes": "Should route to scheduler_agent and attempt to create a calendar event."
+  },
+  {
+    "id": "general_lawn_question",
+    "description": "User asks an open-ended general question",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "I just moved to a new house with a Zoysia lawn in North Carolina. What should I know?"
+        }
+      ]
+    },
+    "expected_criteria": [
+      "grass_type_specificity",
+      "actionable_advice"
+    ],
+    "expected_keywords": ["zoysia", "dormant", "mow", "fertiliz"],
+    "notes": "Orchestrator should provide a helpful overview covering key Zoysia care points."
+  },
+  {
+    "id": "weed_identification",
+    "description": "User describes weed symptoms",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "I have a weed with three round leaves and white flowers spreading through my Kentucky Bluegrass. How do I get rid of it?"
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "actionable_advice",
+      "safety_first"
+    ],
+    "expected_keywords": ["clover", "2,4-D", "herbicide"],
+    "notes": "Clover identification. Should route to diagnosis_agent."
+  },
+  {
+    "id": "full_care_calendar",
+    "description": "User wants a complete care calendar set up",
+    "session_input": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "Can you set up a full lawn care calendar for my Bermuda grass? My lawn is 3,000 sq ft in Dallas, TX."
+        }
+      ]
+    },
+    "expected_criteria": [
+      "routing_accuracy",
+      "actionable_advice"
+    ],
+    "expected_keywords": ["calendar", "bermuda", "fertilize", "events"],
+    "notes": "Should route to scheduler_agent and call create_lawn_care_calendar."
+  }
+]

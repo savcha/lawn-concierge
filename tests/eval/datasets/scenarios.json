@@ -1,0 +1,53 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "watering_full_context",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "I live in Austin, TX and have Bermuda grass, about 2,000 sq ft. It rained an inch yesterday. Do I need to water today?"}]
+      }
+    },
+    {
+      "eval_case_id": "missing_context_probe",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "When should I water my lawn?"}]
+      }
+    },
+    {
+      "eval_case_id": "pest_treatment_safety",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "My St. Augustine lawn in Florida has yellowing patches in the sunniest spots, feels spongy, and is spreading. It's July. What's wrong and how do I treat it?"}]
+      }
+    },
+    {
+      "eval_case_id": "multi_part_watering_and_fertilizing",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "I have fescue grass in Denver, about 1,500 sq ft. When should I water it AND when should I fertilize it this fall?"}]
+      }
+    },
+    {
+      "eval_case_id": "calendar_reminder_creation",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Remind me to fertilize my Bermuda lawn in August. It's about 1,500 square feet."}]
+      }
+    },
+    {
+      "eval_case_id": "vague_calendar_reminder_request",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Help me set up calendar reminders for when lawn requires services such as fertilizer."}]
+      }
+    },
+    {
+      "eval_case_id": "full_treatment_plan_request",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "I have a Kentucky Bluegrass lawn in Denver, about 3,000 sq ft. It's September. Can you give me a full treatment plan for what I should do this season?"}]
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+acli_version: "0.5.0"
+name: lawn-concierge
+agent_directory: app
+region: us-east1
+create_params:
+  deployment_target: cloud_run
+  session_type: in_memory

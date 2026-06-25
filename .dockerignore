@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache
+dist/
+build/
+*.egg-info/
+
+# Environment / secrets — NEVER include these in the image
+.env
+credentials.json
+token.json
+
+# Dev files
+tests/
+Makefile
+*.md
+deployment/
+
+# IDE
+.vscode/
+.idea/

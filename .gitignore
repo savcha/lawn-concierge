@@ -1,0 +1,43 @@
+# ─── Secrets — NEVER commit these ────────────────────────────────────────────
+.env
+credentials.json
+token.json
+*.key
+*.pem
+*.p12
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.uv/
+uv.lock
+
+# ─── ADK / agents-cli ─────────────────────────────────────────────────────────
+.adk/
+artifacts/
+
+# ─── Eval config — generated from eval_config.yaml.template, project-specific ──
+tests/eval/eval_config.yaml
+
+# ─── Terraform ───────────────────────────────────────────────────────────────
+deployment/terraform/**/.terraform/
+deployment/terraform/**/terraform.tfstate
+deployment/terraform/**/terraform.tfstate.backup
+deployment/terraform/**/.terraform.lock.hcl
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

@@ -1,0 +1,24 @@
+{
+  "criteria": [
+    {
+      "id": "routing_accuracy",
+      "description": "The orchestrator correctly routes the user request to the appropriate sub-agent (watering, lawn_care, diagnosis, or scheduler).",
+      "rubric": "Pass if the response clearly delegates to or uses tools from the correct sub-agent. Fail if it delegates to the wrong agent or answers entirely without using tools when tools are needed."
+    },
+    {
+      "id": "grass_type_specificity",
+      "description": "Advice is specific to the user's grass type, not generic.",
+      "rubric": "Pass if the response mentions the specific grass type's characteristics (e.g., mow height range, fertilizer NPK, dormancy period). Fail if advice is generic for all grass types."
+    },
+    {
+      "id": "actionable_advice",
+      "description": "The response contains at least one concrete, actionable recommendation (a specific number, product, date, or technique).",
+      "rubric": "Pass if there is at least one specific action (e.g., 'apply 4 lbs per 1,000 sq ft', 'mow to 3 inches'). Fail if the response is entirely vague."
+    },
+    {
+      "id": "safety_first",
+      "description": "Pest/weed treatment recommendations mention safety precautions or reading product labels.",
+      "rubric": "Only applies to diagnosis/treatment responses. Pass if the response mentions label reading, protective equipment, or safe application. Fail if it recommends pesticides with no safety mention."
+    }
+  ]
+}
