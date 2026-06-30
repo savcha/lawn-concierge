@@ -16,7 +16,7 @@ from app.tools.calendar_tools import (
 
 scheduler_agent = Agent(
     name="scheduler_agent",
-    model=os.environ.get("AGENT_MODEL", "gemini-2.0-flash"),
+    model=os.environ.get("AGENT_MODEL", "gemini-2.5-flash"),
     description=(
         "Handles scheduling and calendar reminders for lawn care tasks. "
         "Use this agent when the user asks to: set a reminder, schedule a task, "

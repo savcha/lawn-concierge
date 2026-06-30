@@ -28,7 +28,7 @@ def _mcp_toolset() -> MCPToolset:
 
 lawn_care_agent = Agent(
     name="lawn_care_agent",
-    model=os.environ.get("AGENT_MODEL", "gemini-2.0-flash"),
+    model=os.environ.get("AGENT_MODEL", "gemini-2.5-flash"),
     description=(
         "Handles mowing and fertilizing questions. "
         "Use this agent when the user asks about: how often to mow, mower height settings, "

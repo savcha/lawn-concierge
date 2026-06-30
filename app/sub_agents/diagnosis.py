@@ -28,7 +28,7 @@ def _mcp_toolset() -> MCPToolset:
 
 diagnosis_agent = Agent(
     name="diagnosis_agent",
-    model=os.environ.get("AGENT_MODEL", "gemini-2.0-flash"),
+    model=os.environ.get("AGENT_MODEL", "gemini-2.5-flash"),
     description=(
         "Handles lawn problem diagnosis — pests, weeds, and diseases — and proactive "
         "pest/weed prevention. Use this agent when the user describes: brown patches, "

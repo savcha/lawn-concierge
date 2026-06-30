@@ -29,9 +29,13 @@ custom_metrics:
       Final response: {response}
       Full trace (agent authors, tool calls, tool responses, intermediate text): {agent_data}
 
-      Score 1-5 on whether the request was routed to the correct specialist(s),
+      Score 1-5 on whether the request was handled by the correct specialist(s),
       using the tools/agents visible in the trace as evidence (not just the
-      final text). 5 = routed correctly to every specialist the request needed.
+      final text). 5 = the right specialist(s) handled the request and the user
+      received correct advice; agent-to-agent peer transfers (e.g. watering_agent
+      transferring directly to lawn_care_agent without bouncing back through the
+      orchestrator) still count as 5 if the correct specialists were ultimately
+      involved and the user got the right answer.
       1 = routed to the wrong specialist or answered without delegating when
       specialist knowledge was required.
 
@@ -101,10 +105,17 @@ custom_metrics:
       Final response: {response}
       Full trace (tool calls made are visible here): {agent_data}
 
-      If the user's request is a narrow, single-topic question (e.g. only
-      asking about watering, or only describing a specific visible pest
-      symptom), this metric does not apply — score 5 and say so in the
-      explanation.
+      This metric does NOT apply (score 5, say so in explanation) in any of
+      these cases:
+      - The user's request is a narrow, single-topic question (e.g. only
+        asking about watering, or only describing a specific visible pest
+        symptom, or asking for a reminder for one specific task).
+      - The agent is still in the initial context-gathering phase — i.e., the
+        final response is asking the user for missing essential context (grass
+        type, location, lawn size) before any plan can be produced. If no tools
+        were called because the agent needs to gather info first, score 5;
+        penalizing missing tool calls when the agent hasn't yet gathered the
+        context needed to call them would be unfair.
 
       If the user explicitly asks for a "full"/"complete"/"seasonal"/
       "treatment" plan, or otherwise asks what they should do for their lawn

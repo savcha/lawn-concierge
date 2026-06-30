@@ -204,6 +204,8 @@ def get_fertilizing_schedule(
             "Apply when soil is moist but grass blades are dry.",
             "Water lightly after application to activate granules.",
             "Never fertilize stressed, heat-damaged grass.",
+            "Always read and follow the product label for application rates and safety "
+            "precautions — wear gloves and wash hands after handling.",
         ],
     }
 

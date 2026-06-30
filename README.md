@@ -24,13 +24,16 @@ User ──► Root Orchestrator (Gemini)
               │         └── weather_forecast, current_weather
               │
               ├──► lawn_care_agent   ◄──► Lawn Tools MCP Server
-              │         └── mowing_schedule, fertilizing_schedule, lawn_care_advice
+              │         └── mowing_schedule, fertilizing_schedule,
+              │             aeration_schedule, lawn_care_advice
               │
               ├──► diagnosis_agent   ◄──► Lawn Tools MCP Server
-              │         └── diagnose_problem, pest_weed_library
+              │         └── diagnose_problem, pest_prevention_schedule,
+              │             pest_weed_library
               │
               └──► scheduler_agent  ◄──► Google Calendar API
-                        └── create_lawn_reminder, create_lawn_care_calendar
+                        └── create_lawn_reminder, create_lawn_care_calendar,
+                            list_upcoming_lawn_events
 ```
 
 ### Components
@@ -45,19 +48,7 @@ User ──► Root Orchestrator (Gemini)
 | Lawn Tools MCP Server | FastMCP (Python) | Custom MCP tools: weather + lawn knowledge base |
 | Weather data | OpenWeatherMap API | 7-day forecasts for watering decisions |
 | Calendar integration | Google Calendar API v3 | OAuth2-secured event creation |
-| Deployment | GCP Cloud Run + Terraform | Containerized, auto-scaling serverless |
-
-### Course Concepts Applied
-
-This project demonstrates the following course concepts:
-
-| Concept | Where |
-|---|---|
-| ✅ Agent / Multi-agent system (ADK) | `app/agent.py` — orchestrator + 4 sub-agents |
-| ✅ MCP Server | `mcp_server/` — custom FastMCP server |
-| ✅ Agent skills (Agents CLI) | Built and deployed using `agents-cli` |
-| ✅ Agent skills (Claude Code) | `conventional-commits.skill` — enforces Conventional Commits on this repo |
-| ✅ Deployability | Terraform + Cloud Run deployment |
+| Deployment | GCP Cloud Run (via `agents-cli deploy`) | Containerized, auto-scaling serverless |
 
 ## Setup
 
@@ -87,8 +78,13 @@ uv sync
 ```bash
 cp .env.example .env
 # Edit .env and fill in:
-#   GOOGLE_CLOUD_PROJECT  — your GCP project ID
-#   OPENWEATHER_API_KEY   — from https://openweathermap.org/api (free tier)
+#   GOOGLE_CLOUD_PROJECT       — your GCP project ID
+#   GOOGLE_GENAI_USE_VERTEXAI  — leave as TRUE (uses Vertex AI + ADC instead of
+#                                 an AI Studio API key). The agent will fail to
+#                                 respond at all if this isn't set — Application
+#                                 Default Credentials must be configured too
+#                                 (`gcloud auth application-default login`).
+#   OPENWEATHER_API_KEY        — from https://openweathermap.org/api (free tier)
 ```
 
 ### 4. Set up Google Calendar (optional, for reminders)
@@ -96,7 +92,11 @@ cp .env.example .env
 1. Go to [GCP Console](https://console.cloud.google.com) → APIs & Services → Credentials
 2. Create an OAuth 2.0 Client ID (Desktop application)
 3. Download the JSON file and save it as `credentials.json` in the project root
-4. On first use, the agent will open a browser window for OAuth authorization
+4. On the [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent),
+   add your own Google account under **Test users** — while the app is in "Testing"
+   publishing status, OAuth will fail with `403: access_denied` for any account not
+   on this list, and the resulting refresh token expires after ~7 days
+5. On first use, the agent will open a browser window for OAuth authorization
 
 ### 5. Run locally
 
@@ -108,7 +108,7 @@ make dev
 uv run agents-cli playground
 ```
 
-Open http://localhost:8080 in your browser to chat with the Lawn Concierge.
+Open http://localhost:8080/dev-ui/?app=app in your browser to chat with the Lawn Concierge.
 
 ### 6. Run tests
 
@@ -116,8 +116,13 @@ Open http://localhost:8080 in your browser to chat with the Lawn Concierge.
 # Unit tests (no API key needed)
 make test
 
-# Eval suite (requires Gemini API key or GCP project)
+# Legacy criteria-based eval (requires Gemini API key or GCP project)
 make eval
+
+# LLM-as-judge eval pipeline — generates traces against tests/eval/datasets/scenarios.json,
+# then grades them with custom judge metrics defined in tests/eval/eval_config.yaml.template
+make generate-traces
+make grade
 ```
 
 ## Usage Examples
@@ -149,57 +154,72 @@ Lawn Concierge: That sounds like Chinch Bugs — a classic symptom on warm-seaso
 **Calendar reminder:**
 ```
 You: Remind me to fertilize my Bermuda lawn in August.
-Lawn Concierge: I'll create a Google Calendar event for August 1st: "Fertilize Lawn —
-  Bermuda (21-7-14)" with a reminder the day before. [Creates event → link]
+Lawn Concierge: Based on your lawn, you'll need about 6 lbs of 21-7-14 fertilizer.
+  What date in August would you like the reminder set for?
+You: August 15th.
+Lawn Concierge: Done! Created "Fertilize Lawn — Bermuda (21-7-14)" for August 15th,
+  with a 1-hour popup and 1-day email reminder. [Creates event → link]
 ```
 
 ## Deployment to GCP Cloud Run
 
-### 1. Build and push container
+Deployment is handled by `agents-cli` (wraps Cloud Build + `gcloud run deploy`).
+No manual image build or Terraform needed.
+
+### 1. Create Secret Manager secrets (first time only)
 
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
-export REGION=us-central1
-export IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/lawn-concierge/app:latest"
+# OpenWeatherMap API key
+printf '%s' "YOUR_OPENWEATHER_KEY" | \
+  gcloud secrets create lawn-concierge-openweather-api-key \
+    --replication-policy=automatic --data-file=-
 
-# Create Artifact Registry repo (first time only)
-gcloud artifacts repositories create lawn-concierge \
-  --repository-format=docker \
-  --location=$REGION
+# Google Calendar OAuth token (run local OAuth flow first, then store token.json)
+cat token.json | \
+  gcloud secrets create lawn-concierge-calendar-token \
+    --replication-policy=automatic --data-file=-
 
-# Build and push
-gcloud builds submit --tag $IMAGE .
+# Grant the Cloud Run compute SA access to both secrets
+SA="$(gcloud projects describe $GOOGLE_CLOUD_PROJECT \
+  --format='value(projectNumber)')-compute@developer.gserviceaccount.com"
+for secret in lawn-concierge-openweather-api-key lawn-concierge-calendar-token; do
+  gcloud secrets add-iam-policy-binding "$secret" \
+    --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+done
 ```
 
-### 2. Deploy with Terraform
+### 2. Deploy
 
 ```bash
-cd deployment/terraform/dev
-terraform init
-terraform apply \
-  -var="project_id=$PROJECT_ID" \
-  -var="region=$REGION" \
-  -var="container_image=$IMAGE"
+make deploy
 ```
 
-### 3. Add the OpenWeatherMap API key to Secret Manager
+`make deploy` runs `agents-cli deploy`, which builds the container with Cloud Build,
+pushes it to Artifact Registry, and deploys a new Cloud Run revision — all in one step.
+
+### 3. Access the deployed agent
 
 ```bash
-echo -n "YOUR_OPENWEATHER_KEY" | \
-  gcloud secrets versions add lawn-concierge-openweather-api-key --data-file=-
+# Open a local authenticated tunnel (token expires ~1 hour, restart when needed)
+gcloud run services proxy lawn-concierge \
+  --region $GOOGLE_CLOUD_LOCATION --port 8081
 ```
 
-### 4. Access the deployed agent
-
-Terraform outputs the Cloud Run URL. Open it in your browser — the ADK web UI is served directly.
+Then open `http://localhost:8081/dev-ui/?app=app` in your browser.
 
 ## Security
 
 - **No secrets in code** — all API keys are stored in Secret Manager or `.env` (gitignored)
-- **Least-privilege service account** — only `secretmanager.secretAccessor` and `aiplatform.user`
-- **OAuth2 for Calendar** — users authorize with their own Google account; tokens stored locally
+- **OAuth2 for Calendar** — users authorize with their own Google account; the token is
+  stored locally for dev, or in Secret Manager (`GOOGLE_CALENDAR_TOKEN_JSON`) for the
+  deployed service, refreshed non-interactively since there's no browser available there
 - **Non-root container** — Dockerfile runs as an unprivileged `appuser`
 - **No PII stored** — agent is stateless; no user data is persisted between sessions
+- ⚠️ **Service account is not yet least-privilege** — `agents-cli deploy` currently runs
+  the Cloud Run service under the project's default compute service account (broad
+  `roles/editor`), not a dedicated least-privilege identity. Pass `--service-account`
+  with a purpose-built SA (only `secretmanager.secretAccessor` + `aiplatform.user`) before
+  using this beyond a personal demo.
 
 ## Project Structure
 
@@ -218,24 +238,27 @@ lawn-concierge/
 │   ├── server.py                 # MCP entry point
 │   └── tools/
 │       ├── weather.py            # OpenWeatherMap integration
-│       ├── lawn_advisor.py       # Mowing/fertilizing knowledge base
-│       └── diagnosis.py         # Pest/weed/disease knowledge base
+│       ├── lawn_advisor.py       # Mowing/fertilizing/aeration knowledge base
+│       └── diagnosis.py          # Pest/weed/disease diagnosis + proactive prevention
 ├── tests/
-│   ├── eval/                     # agents-cli eval datasets
+│   ├── eval/
+│   │   ├── datasets/scenarios.json       # LLM-as-judge eval scenarios
+│   │   ├── eval_config.yaml.template     # Custom judge metrics (project-agnostic)
+│   │   └── evalsets/basic.evalset.json   # Legacy criteria-based evalset (`make eval`)
 │   ├── unit/                     # Unit tests (no API needed)
 │   └── integration/              # End-to-end agent tests
-├── deployment/
-│   └── terraform/dev/            # Cloud Run Terraform
-├── Dockerfile                    # Container image
-├── pyproject.toml                # Dependencies + agents-cli config
+├── scripts/
+│   └── generate_traces.py        # Local eval trace generator (`make generate-traces`)
+├── Dockerfile                    # Container image (deployed via agents-cli)
+├── agents-cli-manifest.yaml      # agents-cli project config
+├── pyproject.toml                # Dependencies
 ├── Makefile                      # Dev workflow shortcuts
-├── GEMINI.md                     # Coding agent guidance
+├── LICENSE                       # MIT
 └── .env.example                  # Environment variable template
 ```
 
 ## Contributing
 
-This is a capstone project for Kaggle's 5-Day AI Agents: Intensive Vibe Coding Course.
 Issues and PRs welcome — especially for additional grass types, regional pest databases,
 and soil sensor integrations.
 

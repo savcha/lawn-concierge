@@ -28,7 +28,7 @@ def _mcp_toolset() -> MCPToolset:
 
 watering_agent = Agent(
     name="watering_agent",
-    model=os.environ.get("AGENT_MODEL", "gemini-2.0-flash"),
+    model=os.environ.get("AGENT_MODEL", "gemini-2.5-flash"),
     description=(
         "Handles all watering schedule and irrigation questions. "
         "Use this agent when the user asks about: when to water, how much to water, "

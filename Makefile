@@ -44,9 +44,19 @@ lint:
 	uv run ruff check app mcp_server tests
 
 # ─── Deployment ───────────────────────────────────────────────────────────────
-deploy-cloud-run:
-	@echo "Deploying to Cloud Run..."
-	cd deployment/terraform/dev && terraform init && terraform apply -auto-approve
+# Deploy to Cloud Run using agents-cli (builds, pushes, and deploys in one step).
+# Secrets must exist in Secret Manager — see README for setup.
+# Loads GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION from .env since make does
+# not source it automatically.
+include .env
+export
+deploy:
+	uv run agents-cli deploy \
+		--project $(GOOGLE_CLOUD_PROJECT) \
+		--region $(GOOGLE_CLOUD_LOCATION) \
+		--secrets "OPENWEATHER_API_KEY=lawn-concierge-openweather-api-key,GOOGLE_CALENDAR_TOKEN_JSON=lawn-concierge-calendar-token" \
+		--update-env-vars "GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_LOCATION=$(GOOGLE_CLOUD_LOCATION),AGENT_MODEL=gemini-2.5-flash" \
+		--no-confirm-project
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 clean:
